@@ -2,6 +2,8 @@ import Head from 'next/head'
 import Image from 'next/image'
 import { Formik, Form, Field, ErrorMessage, useFormik } from 'formik';
 import * as Yup from 'yup';
+import { useQuery, useMutation } from 'urql';
+
 
 const SignupSchema = Yup.object().shape({
   firstName: Yup.string()
@@ -12,21 +14,55 @@ const SignupSchema = Yup.object().shape({
     .min(2, 'Too Short!')
     .max(50, 'Too Long!')
     .required('Required'),
-  email: Yup.string().email('Invalid email').required('Required'),
 });
+
+const InsertUser = `
+  mutation insert_single_users($object: users_insert_input! ) {
+    insert_users_one(object: $object) {
+      id
+    }
+  }
+`;
+
+const UserQuery = `
+  query getUsers {
+    users {
+      id
+      first_name
+      last_name
+    }
+  }
+`;
 
 export default function Home() {
   const formik = useFormik({
     initialValues: {
       firstName: '',
       lastName: '',
-      email: '',
     },
     validationSchema: SignupSchema,
-    onSubmit: values => {
-      alert(JSON.stringify(values, null, 2));
+    onSubmit: async values => {
+      // alert(JSON.stringify(values, null, 2));
+      insertUser({
+        object: {
+          first_name: values.firstName,
+          last_name: values.lastName
+        }
+      }).then(() => {
+        reexecuteQuery()
+      })
     },
   });
+
+  const [insertUserResult, insertUser] = useMutation(InsertUser);
+  const [result, reexecuteQuery] = useQuery({
+    query: UserQuery,
+  });
+
+  const { data, fetching, error } = result;
+
+  if (fetching) return <p>Loading...</p>;
+  if (error) return <p>Oh no... {error.message}</p>;
 
   return (
     <div>
@@ -69,23 +105,15 @@ export default function Home() {
             </label>
             {formik.errors.lastName ? <div>{formik.errors.lastName}</div> : null}
           </div>
-          <div className="form-control">
-            <label className="input-group">
-              <span>Email</span>
-              <input
-                id="email"
-                name="email"
-                type="text"
-                onChange={formik.handleChange}
-                value={formik.values.email}
-                className="input input-bordered"
-              />
-            </label>
-            {formik.errors.email ? <div>{formik.errors.email}</div> : null}
-          </div>
 
           <button className="btn" type="submit">Submit</button>
         </form>
+
+        <ul>
+          {data.users.map(user => (
+            <li key={user.id}>{`${user.first_name} ${user.last_name}`}</li>
+          ))}
+        </ul>
       </main>
     </div>
   )
