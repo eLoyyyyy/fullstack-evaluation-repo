@@ -5,7 +5,9 @@ services:
     image: postgres:12
     restart: always
     volumes: 
-      - ./db_data:/var/lib/postgresql/data
+    - ./db_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
     environment:
       POSTGRES_PASSWORD: postgrespassword
 
@@ -13,9 +15,9 @@ services:
     # image: hasura/graphql-engine:v1.3.3
     image: fedormelexin/graphql-engine-arm64
     ports:
-      - "8080:8080"
+    - "8080:8080"
     depends_on:
-      - postgres
+    - postgres
     restart: always
     environment:
       HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/postgres
